@@ -1,0 +1,66 @@
+<!doctype html>
+<!--
+  Pàgina de rebot del banc (Wardi, només per a l'entorn local).
+
+  Enable Banking només accepta Redirect URLs https://, i la funció local banc-callback és a http://127.0.0.1. Aquesta
+  pàgina es publica en una adreça https (GitHub Pages) i, quan el banc hi torna, envia el navegador a banc-callback
+  local amb la mateixa query string (code, state, error…), sense tocar-la.
+
+  - El destí és el de la meta «wardi-desti» de sota, escrit aquí: cap paràmetre de la URL el pot canviar, i el script
+    només hi va si és http://127.0.0.1:<port>/functions/v1/banc-callback (o localhost). Cap open redirect.
+  - El port surt de [api] de supabase/config.toml: scripts/genera-env-funcions.mjs comprova la meta i, si no hi
+    coincideix, la reescriu (i cal tornar a publicar la pàgina).
+  - Sense dependències, sense analítica ni registres, sense cap petició: la Content-Security-Policy només deixa
+    executar aquest script (per hash) i no permet carregar res.
+  - Si se n'edita el script o l'estil, cal actualitzar els hashos de la CSP (node scripts/prova-banc-rebot.mjs els
+    calcula i avisa si no coincideixen).
+-->
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-iamZpXiRcC0IJELDT+qlNpTQWQUR+BYrVJ3wbcsYTRE='; style-src 'sha256-6spBp7EYwhEun3UVxZogCzIQkR+moM81NVtE+xyjn+Q='; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="wardi-desti" content="http://127.0.0.1:54321/functions/v1/banc-callback">
+<title>Wardi</title>
+<style>
+body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #FAF8F5; color: #2B2B2B; font: 16px/1.5 system-ui, -apple-system, sans-serif; }
+main { max-width: 420px; margin: 16px; padding: 24px; background: #fff; border-radius: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+h1 { margin: 0 0 8px; font-size: 18px; color: #2C5E4E; }
+p { margin: 0; }
+</style>
+</head>
+<body>
+<main>
+<h1 id="t">Wardi</h1>
+<p id="m">Tornant a Wardi…</p>
+<noscript><p>Cal JavaScript per tornar a Wardi. · Hace falta JavaScript para volver a Wardi. · JavaScript is needed to return to Wardi.</p></noscript>
+</main>
+<script>
+(function () {
+  'use strict';
+  var TEXT = {
+    ca: { going: 'Tornant a Wardi…', empty: 'Aquesta pàgina només fa de pont quan el banc torna a Wardi, i ara no porta cap resposta del banc. Torna a Wardi i comença la connexió des d\'allà.', config: 'Aquesta pàgina no està ben configurada (el destí no és el Wardi local). No s\'hi ha anat.' },
+    es: { going: 'Volviendo a Wardi…', empty: 'Esta página solo hace de puente cuando el banco vuelve a Wardi, y ahora no trae ninguna respuesta del banco. Vuelve a Wardi y empieza la conexión desde allí.', config: 'Esta página no está bien configurada (el destino no es el Wardi local). No se ha ido.' },
+    en: { going: 'Returning to Wardi…', empty: 'This page only acts as a bridge when the bank returns to Wardi, and right now it carries no response from the bank. Go back to Wardi and start the connection from there.', config: 'This page is not set up correctly (the destination is not the local Wardi). Nothing was opened.' }
+  };
+  var lang = String((navigator.languages && navigator.languages[0]) || navigator.language || 'ca').slice(0, 2).toLowerCase();
+  var T = TEXT[lang] || TEXT.ca;
+  document.documentElement.lang = TEXT[lang] ? lang : 'ca';
+  var show = function (k) { document.getElementById('m').textContent = T[k]; };
+
+  // el destí és el de la pàgina (mai de la URL), i només pot ser banc-callback local
+  var meta = document.querySelector('meta[name="wardi-desti"]');
+  var dest = meta ? meta.getAttribute('content') : '';
+  if (!/^http:\/\/(127\.0\.0\.1|localhost):[0-9]{1,5}\/functions\/v1\/banc-callback$/.test(dest)) { show('config'); return; }
+
+  // la query string, exactament com ha arribat
+  var query = window.location.search;
+  if (!query || query === '?') { show('empty'); return; }
+  show('going');
+  window.location.replace(dest + query);
+})();
+</script>
+</body>
+</html>
